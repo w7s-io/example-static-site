@@ -1,0 +1,39 @@
+name: Deploy
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-main
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: w7s-io/w7s-cloud@v1
+        with:
+          token: ${{ github.token }}
+
+      - name: Smoke test
+        run: |
+          set -euo pipefail
+          url="https://w7s-io.w7s.cloud/example-static-site/"
+
+          for attempt in {1..12}; do
+            if curl -fsS "$url" | grep -q "Static site deployed from GitHub"; then
+              exit 0
+            fi
+            sleep 5
+          done
+
+          curl -fsS "$url"
+
